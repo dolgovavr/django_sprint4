@@ -6,25 +6,33 @@ from django.urls import reverse
 User = get_user_model()
 
 
-class PublishedModel(models.Model):
-    """Абстрактная модель. Добавляет флаг is_published и created_at."""
-
-    is_published = models.BooleanField(
-        default=True,
-        verbose_name='Опубликовано',
-    )
+class CreatedAtMixin(models.Model):
+    """Абстрактная модель. Добавляет created_at."""
+    
     created_at = models.DateTimeField(
         auto_now_add=True,
         verbose_name='Добавлено'
     )
+    
+    class Meta:
+        abstract = True
 
+
+class PublishedMixin(models.Model):
+    """Абстрактная модель. Добавляет флаг is_published."""
+    
+    is_published = models.BooleanField(
+        default=True,
+        verbose_name='Опубликовано',
+    )
+    
     class Meta:
         abstract = True
 
 
 class PublishedManager(models.Manager):
     """Менеджер для фильтрации опубликованных постов."""
-
+    
     def get_queryset(self):
         return super().get_queryset().filter(
             is_published=True,
@@ -33,9 +41,9 @@ class PublishedManager(models.Manager):
         )
 
 
-class Category(PublishedModel):
+class Category(CreatedAtMixin, PublishedMixin):
     """Тематическая категория"""
-
+    
     title = models.CharField(
         max_length=256,
         verbose_name='Заголовок'
@@ -47,39 +55,40 @@ class Category(PublishedModel):
         help_text=('Идентификатор страницы для URL; разрешены символы '
                    'латиницы, цифры, дефис и подчёркивание.')
     )
+    # Переопределяем is_published с дополнительной help_text
     is_published = models.BooleanField(
         default=True,
         verbose_name='Опубликовано',
         help_text='Снимите галочку, чтобы скрыть публикацию.'
     )
-
+    
     class Meta:
         verbose_name = 'категория'
         verbose_name_plural = 'Категории'
-
+    
     def __str__(self):
         return self.title
 
 
-class Location(PublishedModel):
+class Location(CreatedAtMixin, PublishedMixin):
     """Географическая метка"""
-
+    
     name = models.CharField(
         max_length=256,
         verbose_name='Название места'
     )
-
+    
     class Meta:
         verbose_name = 'местоположение'
         verbose_name_plural = 'Местоположения'
-
+    
     def __str__(self):
         return self.name
 
 
-class Post(PublishedModel):
+class Post(CreatedAtMixin, PublishedMixin):
     """Публикация"""
-
+    
     title = models.CharField(
         max_length=256,
         verbose_name='Заголовок'
@@ -113,25 +122,25 @@ class Post(PublishedModel):
         null=True,
         verbose_name='Категория'
     )
-
+    
     objects = models.Manager()
     published = PublishedManager()
-
+    
     class Meta:
         verbose_name = 'публикация'
         verbose_name_plural = 'Публикации'
         ordering = ['-pub_date']
-
+    
     def __str__(self):
         return self.title
-
+    
     def get_absolute_url(self):
-        return reverse('blog:post_detail', kwargs={'id': self.id})
+        return reverse('blog:post_detail', kwargs={'post_id': self.id})
 
 
-class Comment(models.Model):
+class Comment(CreatedAtMixin):
     """Комментарий к публикации"""
-
+    
     text = models.TextField('Текст комментария')
     post = models.ForeignKey(
         Post,
@@ -144,15 +153,11 @@ class Comment(models.Model):
         on_delete=models.CASCADE,
         verbose_name='Автор комментария'
     )
-    created_at = models.DateTimeField(
-        auto_now_add=True,
-        verbose_name='Добавлен'
-    )
-
+    
     class Meta:
         ordering = ['created_at']
         verbose_name = 'комментарий'
         verbose_name_plural = 'Комментарии'
-
+    
     def __str__(self):
         return f'Комментарий {self.author} к {self.post}'

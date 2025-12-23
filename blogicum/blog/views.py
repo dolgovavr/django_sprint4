@@ -36,11 +36,11 @@ def index(request):
     return render(request, 'blog/index.html', {'page_obj': page_obj})
 
 
-def post_detail(request, id):
+def post_detail(request, post_id):
     """Страница отдельной публикации с комментариями"""
     post = get_object_or_404(Post.objects.select_related('category',
                                                          'location',
-                                                         'author'), id=id)
+                                                         'author'), id=post_id)
 
     is_accessible = (
         post.is_published
